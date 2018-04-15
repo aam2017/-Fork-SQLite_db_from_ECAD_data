@@ -31,7 +31,7 @@ def read_csv(strPath):
 
 def delta_days(varDate01, varDate02):
     """Difference between two dates (YYYYMMDD) in days."""
-    objDate01 = datetime.strptime(varDate01, "%Y%m%d")
-    objDate02 = datetime.strptime(varDate02, "%Y%m%d")
+    objDate01 = datetime.datetime.strptime(str(varDate01), "%Y%m%d")
+    objDate02 = datetime.datetime.strptime(str(varDate02), "%Y%m%d")
     varDeltaDays = abs((objDate02 - objDate01).days)
     return varDeltaDays
