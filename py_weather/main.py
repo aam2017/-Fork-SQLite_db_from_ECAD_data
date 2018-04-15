@@ -72,3 +72,6 @@ else:
     fleHd = h5py.File(strPthHd, 'r')
     objData = fleHd['weather_data']
 # -----------------------------------------------------------------------------
+
+print('objData.shape')
+print(objData.shape)

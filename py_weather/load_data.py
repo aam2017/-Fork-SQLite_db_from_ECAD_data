@@ -29,6 +29,8 @@ from utils import delta_days
 def load_data(lstFtr, strPthIn, strFleIn, varNumHdr, strPthHd, varStrtDate,
               varEndDate):
     """Load weather data from text files and save to hdf5 file."""
+    print('---Loading weather data from text files.')
+    
     # Number of weather features:
     varNumFtr = len(lstFtr)
 
@@ -48,11 +50,11 @@ def load_data(lstFtr, strPthIn, strFleIn, varNumHdr, strPthHd, varStrtDate,
     # Search for data text files - loop through features:
     for idxFtr in range(varNumFtr):
 
-        # Get number of files (i.e. number of weather stations for which
-        # record is available).
-
         # Appreviation for current feature:
         strFtr = lstFtr[idxFtr]
+
+        # Get number of files (i.e. number of weather stations for which
+        # record is available).
 
         # Complete path of current data directory:
         strPthTmp = strPthIn.format(strFtr)
@@ -90,17 +92,23 @@ def load_data(lstFtr, strPthIn, strFleIn, varNumHdr, strPthHd, varStrtDate,
                                                   varNumDays)),
                                    dtype=np.int32)
 
-    # Loop through stations:
-    for idxSta in range(varNumSta):
-        
-        # Loop through features:
-        for idxFtr in range(varNumFtr):
+    # Loop through features:
+    for idxFtr in range(varNumFtr):
+
+        print(('------Feature: ' + str(lstFtr[idxFtr])))
+
+        # Loop through stations:
+        for idxSta in range(varNumSta):
+
+            print(('------Station: ' + str(idxSta)))
 
             # Path of current datafile:
             strPthTmp = (strPthIn.format(lstFtr[idxFtr])
                          + lstFtr[idxFtr]
                          + '_'
                          + lstFls[idxSta])
+
+            print(('      ' + strPthTmp))
 
             # Load data from file:
             lstCsv = read_csv(strPthTmp)[varNumHdr:]
