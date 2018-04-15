@@ -30,7 +30,7 @@ def load_data(lstFtr, strPthIn, strFleIn, varNumHdr, strPthHd, varStrtDate,
               varEndDate):
     """Load weather data from text files and save to hdf5 file."""
     print('---Loading weather data from text files.')
-    
+
     # Number of weather features:
     varNumFtr = len(lstFtr)
 
@@ -46,7 +46,7 @@ def load_data(lstFtr, strPthIn, strFleIn, varNumHdr, strPthHd, varStrtDate,
     fleHd = h5py.File(strPthHd, 'w')
 
     # ** Find complete datasets
-    
+
     # Search for data text files - loop through features:
     for idxFtr in range(varNumFtr):
 
@@ -70,16 +70,16 @@ def load_data(lstFtr, strPthIn, strFleIn, varNumHdr, strPthHd, varStrtDate,
         # of these sets contains the file names for that feature, e.g.
         # 'STAID004923.txt', i.e. withouth prefix (i.e. without 'CC_'):
         lstFls[idxFtr] = set(lstFlsTmp)
-        
+
     # ** Only select complete datasets
-    
+
     # For now, only weather stations for which records for all available
     # features are available will be selected:
     lstFls = list(set.intersection(*lstFls))
-    
+
     # Sort list of weather stations:
     lstFls = sorted(lstFls)
-    
+
     # Number of datasets (weather stations):
     varNumSta = len(lstFls)
 
@@ -113,7 +113,7 @@ def load_data(lstFtr, strPthIn, strFleIn, varNumHdr, strPthHd, varStrtDate,
             # Load data from file:
             lstCsv = read_csv(strPthTmp)[varNumHdr:]
 
-            # Loop line of input file:            
+            # Loop line of input file:
             for idxStr in range(len(lstCsv)):
 
                 # Split each line:

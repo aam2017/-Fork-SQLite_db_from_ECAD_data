@@ -23,6 +23,8 @@ import numpy as np
 import h5py
 # import pandas as pd
 from load_data import load_data
+# from sklearn.preprocessing import MinMaxScaler
+import tensorflow as tf
 
 
 # -----------------------------------------------------------------------------
@@ -49,6 +51,12 @@ varStrtDate = 19800101
 
 # Data until this date (YYYMMMDD):
 varEndDate = 20180331
+
+# Predict weather based on past x days:
+varNumPast = 5
+
+# Predict weather for next x days:
+varNumPre = 1
 # -----------------------------------------------------------------------------
 
 
@@ -57,7 +65,7 @@ varEndDate = 20180331
 
 # Check whether data has already been stored in hdf5 format:
 if os.path.isfile(strPthHd):
-    
+
     # Load weather data from hdf5 file:
     fleHd = h5py.File(strPthHd, 'r')
     objData = fleHd['weather_data']
@@ -73,5 +81,26 @@ else:
     objData = fleHd['weather_data']
 # -----------------------------------------------------------------------------
 
+
+# -----------------------------------------------------------------------------
+
+# The data have the following shape: objData[station, weather-feature, day]
+
+# Number of datasets (weather stations):
+varNumSta = objData.shape[0]
+
+# Number of weather features:
+varNumFtr = objData.shape[1]
+
+
+
+# Placeholder
+X = tf.placeholder(dtype=tf.float32, shape=[varNumSta, varNumFtr, varNumPast])
+Y = tf.placeholder(dtype=tf.float32, shape=[varNumFtr, varNumPre])
+
+# -----------------------------------------------------------------------------
+
 print('objData.shape')
 print(objData.shape)
+
+aaa = objData[520:540, 0, -1000:].T
