@@ -83,13 +83,19 @@ def load_data(lstFtr, strPthIn, strFleIn, varNumHdr, varHdrLneSta, strPthHd,
     # Number of datasets (weather stations):
     varNumSta = len(lstFls)
 
+    print(('---Number of stations for which all features are available: '
+           + str(varNumSta)))
+
     # ** Load measurement data
+
+    # Invalid data is coded as '-9999'. Inital array (to be filled with data)
+    # is set to this value:
+    aryInvl = np.zeros((varNumSta, varNumFtr, varNumDays), dtype=np.float32)
+    aryInvl = np.subtract(aryInvl, float(9999.0))
 
     # Create dataset within hdf5 file:
     objData = fleHd.create_dataset('weather_data',
-                                   data=np.empty((varNumSta,
-                                                  varNumFtr,
-                                                  varNumDays)),
+                                   data=aryInvl,
                                    dtype=np.int32)
 
     # List with station names:
@@ -118,7 +124,7 @@ def load_data(lstFtr, strPthIn, strFleIn, varNumHdr, varHdrLneSta, strPthHd,
 
                 # Load station name from file:
                 lstCsvNme = read_csv(strPthTmp)[varHdrLneSta]
-                lstSta[idxSta] = ('Station ID (STAID): '
+                lstSta[idxSta] = ('Station index: '
                                   + str(idxSta)
                                   + ' '
                                   + lstCsvNme[:])
@@ -161,6 +167,6 @@ def load_data(lstFtr, strPthIn, strFleIn, varNumHdr, varHdrLneSta, strPthHd,
     fleHd.close()
 
     # Save station list:
-    with open(strPthLst, 'wb') as objFle:
-        objWrt = csv.writer(objFle, quoting=csv.QUOTE_ALL)
+    with open(strPthLst, 'w') as objFle:
+        objWrt = csv.writer(objFle, delimiter='\n', quoting=csv.QUOTE_ALL)
         objWrt.writerow(lstSta)

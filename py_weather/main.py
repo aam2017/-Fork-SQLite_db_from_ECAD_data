@@ -34,7 +34,8 @@ import matplotlib.pyplot as plt
 # List of weather features to use (TG = mean temperature, PP = sea level
 # pressure, CC = cloud cover in oktas, RR = precipitation amount in 0.1 mm,
 # DD = wind direction, HU = humidity):
-lstFtr = ['CC', 'PP', 'RR', 'TG', 'TN', 'TX', 'DD', 'HU']
+# lstFtr = ['CC', 'PP', 'RR', 'TG', 'TN', 'TX', 'DD', 'HU']
+lstFtr = ['CC', 'PP', 'RR', 'TG', 'TN', 'TX']
 
 # Input data path of text files (weather feature left open):
 strPthIn = '/media/sf_D_DRIVE/eu_weather/ECA_blend_{}/'
@@ -46,7 +47,7 @@ strFleIn = '{}_STAID{}.txt'
 varNumHdr = 21
 
 # Line containing station name (in csv header):
-varHdrLneSta = 16
+varHdrLneSta = 12
 
 # Path of hdf5 file:
 strPthHd = '/media/sf_D_DRIVE/eu_weather/hdf5/data.hdf5'
@@ -62,13 +63,13 @@ varStrtDate = 19800101
 varEndDate = 20180331
 
 # Predict weather based on past x days:
-varNumPast = 5
+varNumPast = 1
 
 # Predict weather for xth day into the future (i.e. 1 for following day):
 varNumPre = 1
 
 # Station ID for which to predict:
-varBase = 432
+varBase = 9
 
 # Which feature to predict (index in list, see above):
 # varFtrPrd = 2
@@ -87,7 +88,7 @@ strPthPlot = '/Users/john/Dropbox/Sonstiges/Weather_Plots/'
 varDpi = 96
 
 # Figure size:
-varSizeX = 600
+varSizeX = 2400
 varSizeY = 400
 # -----------------------------------------------------------------------------
 
@@ -204,7 +205,7 @@ fgr01 = plt.figure(figsize=((varSizeX * 0.5) / varDpi,
 for idxFtr in range(varNumFtr):
 
     # Create axis:
-    axs01 = fgr01.add_subplot(1, varNumFtr, idxFtr)
+    axs01 = fgr01.add_subplot(1, varNumFtr, (idxFtr + 1))
 
     # Plot depth profile for current input file:
     plt01 = axs01.plot(aryTestPrd[idxFtr, :])
@@ -231,6 +232,8 @@ plt.close(fgr01)
 # Placeholder
 objX = tf.placeholder(dtype=tf.float32,
                       shape=[varNumPast, (varNumSta * varNumFtr)])
+# objX = tf.placeholder(dtype=tf.float32,
+#                       shape=[None, (varNumSta * varNumFtr)])
 objY = tf.placeholder(dtype=tf.float32, shape=[varNumFtr])
 
 
@@ -282,7 +285,8 @@ bias_hidden_7 = tf.Variable(bias_initializer([n_neurons_7]))
 
 # Output layer: Variables for output weights and biases
 W_out = tf.Variable(weight_initializer([n_neurons_7, n_target]))
-bias_out = tf.Variable(bias_initializer([n_target]))
+# bias_out = tf.Variable(bias_initializer([n_target]))
+bias_out = tf.Variable(bias_initializer([1, varNumFtr]))
 
 # Hidden layer
 hidden_1 = tf.nn.relu(tf.add(tf.matmul(objX, W_hidden_1), bias_hidden_1))
@@ -295,6 +299,12 @@ hidden_7 = tf.nn.relu(tf.add(tf.matmul(hidden_6, W_hidden_7), bias_hidden_7))
 
 # Output layer (must be transposed)
 out = tf.transpose(tf.add(tf.matmul(hidden_7, W_out), bias_out))
+
+print('out.shape')
+print(out.shape)
+
+print('objY.shape')
+print(objY.shape)
 
 # Cost function
 mse = tf.reduce_mean(tf.squared_difference(out, objY))
@@ -343,7 +353,8 @@ for idxEpch in range(varEpch):
             varNumTstDays = (aryTest.shape[0] - varNumPast - varNumPre)
 
             # Array for test predictions:
-            aryPrdTst = np.zeros((varNumTstDays, varNumFtr), dtype=np.float32)
+            aryPrdTst = np.zeros((varNumTstDays, varNumFtr),
+                                 dtype=np.float32)
 
             # Loop through days in test data set:
             for idxDayTst in range(varNumTstDays):
@@ -360,6 +371,9 @@ for idxEpch in range(varEpch):
                 # print('type(pred)')
                 # print(type(pred))
 
+                # print('aryPrdTst.shape')
+                # print(aryPrdTst.shape)
+
                 # print('pred.shape')
                 # print(pred.shape)
 
@@ -369,11 +383,15 @@ for idxEpch in range(varEpch):
                 # `pred` has as many elements as there are features - why? Are
                 # all features predicted?
 
-                aryPrdTst[idxDayTst] = np.copy(pred)
+                aryPrdTst[idxDayTst, :] = np.copy(pred[:, 0])
 
             # Error:
-            aryErr = np.subtract(aryTest[(varNumPast + varNumPre):],
-                                 aryPrdTst)
+            # print('aryTestPrd.shape')
+            # print(aryTestPrd.shape)
+            # print('aryPrdTst.shape')
+            # print(aryPrdTst.shape)
+            aryErr = np.subtract(aryTestPrd[:, (varNumPast + varNumPre):],
+                                 aryPrdTst.T)
 
             # Create figure:
             fgr01 = plt.figure(figsize=((varSizeX * 0.5) / varDpi,
@@ -384,7 +402,7 @@ for idxEpch in range(varEpch):
             for idxFtr in range(varNumFtr):
 
                 # Create axis:
-                axs01 = fgr01.add_subplot(1, varNumFtr, idxFtr)
+                axs01 = fgr01.add_subplot(1, varNumFtr, (idxFtr + 1))
 
                 # Plot depth profile for current input file:
                 plt01 = axs01.plot(aryErr[idxFtr, :])
