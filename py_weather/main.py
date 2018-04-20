@@ -1,5 +1,5 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""Tensorflow weather prediction."""
 
 # Copyright (C) 2018  Ingo Marquardt
 #
@@ -32,8 +32,9 @@ import matplotlib.pyplot as plt
 # *** Define parameters
 
 # List of weather features to use (TG = mean temperature, PP = sea level
-# pressure, CC = cloud cover in oktas, RR = precipitation amount in 0.1 mm):
-lstFtr = ['CC', 'PP', 'RR', 'TG', 'TN', 'TX']
+# pressure, CC = cloud cover in oktas, RR = precipitation amount in 0.1 mm,
+# DD = wind direction, HU = humidity):
+lstFtr = ['CC', 'PP', 'RR', 'TG', 'TN', 'TX', 'DD', 'HU']
 
 # Input data path of text files (weather feature left open):
 strPthIn = '/media/sf_D_DRIVE/eu_weather/ECA_blend_{}/'
@@ -44,9 +45,15 @@ strFleIn = '{}_STAID{}.txt'
 # Number of header lines in data text files:
 varNumHdr = 21
 
+# Line containing station name (in csv header):
+varHdrLneSta = 16
+
 # Path of hdf5 file:
-# strPthHd = '/media/sf_D_DRIVE/eu_weather/hdf5/data.hdf5'
-strPthHd = '/home/john/Documents/data.hdf5'
+strPthHd = '/media/sf_D_DRIVE/eu_weather/hdf5/data.hdf5'
+# strPthHd = '/home/john/Documents/data.hdf5'
+
+# Path of station list:
+strPthLst = '/media/sf_D_DRIVE/eu_weather/hdf5/station_list.txt'
 
 # Load data starting from this data (YYYYMMMDD):
 varStrtDate = 19800101
@@ -64,7 +71,7 @@ varNumPre = 1
 varBase = 432
 
 # Which feature to predict (index in list, see above):
-varFtrPrd = 2
+# varFtrPrd = 2
 
 # Use last x days as test data set (the preceeding time period is used as
 # taining data set).
@@ -74,7 +81,7 @@ varDaysTest = 365
 varEpch = 10
 
 # Output folder for plots:
-strPthPlot = '/media/sf_D_DRIVE/Sonstiges/Weather_Plots/'
+strPthPlot = '/Users/john/Dropbox/Sonstiges/Weather_Plots/'
 
 # Figure dpi:
 varDpi = 96
@@ -98,8 +105,8 @@ if os.path.isfile(strPthHd):
 else:
 
     # Load weather data from text files, and save to hdf5 file:
-    load_data(lstFtr, strPthIn, strFleIn, varNumHdr, strPthHd, varStrtDate,
-              varEndDate)
+    load_data(lstFtr, strPthIn, strFleIn, varNumHdr, varHdrLneSta, strPthHd,
+              strPthLst, varStrtDate, varEndDate)
 
     # Load weather data from hdf5 file:
     fleHd = h5py.File(strPthHd, 'r')
@@ -129,15 +136,15 @@ for idxFtr in range(varNumFtr):
     aryData[:, idxFtr, :] = aryDataTmp
     # print(np.sum(aryLgcInvl))
 
-# Test data set - use this data for prediction during test (i.e. all features
-# from all stations over the test preiod, e.g. last year):
-aryTest = np.array(aryData[:, :, -varDaysTest:],
-                   dtype=np.float32)
-
 # Training data set - use this data for training (i.e. all features from all
 # stations over the training period):
 aryTrain = np.array(aryData[:, :, 0:(-(varDaysTest + 10))],
                     dtype=np.float32)
+
+# Test data set - use this data for prediction during test (i.e. all features
+# from all stations over the test preiod, e.g. last year):
+aryTest = np.array(aryData[:, :, -varDaysTest:],
+                   dtype=np.float32)
 
 # Normalise the training data to range 0 to 1 (separately for each feature):
 for idxFtr in range(varNumFtr):
@@ -157,27 +164,22 @@ for idxFtr in range(varNumFtr):
     vecTmp = np.divide(vecTmp, varTmpMax)
     aryTest[:, idxFtr, :] = vecTmp
 
-# Normalise test data set:
-# varTmpMin = np.min(vecTest)
-# vecTest = np.subtract(vecTest, varTmpMin)
-# varTmpMax = np.max(vecTest)
-# vecTest = np.divide(vecTest, varTmpMax)
-
-# Test data set - predict this data during test (i.e. one feature from one
-# station over the test period, e.g. last year):
-vecTest = aryTest[varBase, varFtrPrd, :]
-
-# Training data set - predict this data during training (i.e. one feature from
+# Training data set - predict this data during training (i.e. all features from
 # one station over the training period):
-vecTrainPrd = aryTrain[varBase, varFtrPrd, :]
+# vecTrainPrd = aryTrain[varBase, varFtrPrd, :]
+aryTrainPrd = aryTrain[varBase, :, :]
 
-# Reshape training data to aryTrain[(station * feature), days]
+# Test data set - predict this data during test (i.e. all features from one
+# station over the test period, e.g. last year):
+aryTestPrd = aryTest[varBase, :, :]
+
+# Reshape training data to aryTrain[days, (station * feature)]
 aryTrain = np.reshape(aryTrain,
                       ((aryTrain.shape[0] * aryTrain.shape[1]),
                        aryTrain.shape[2])
                       ).T
 
-# Reshape test data to aryTest[(station * feature), days]
+# Reshape test data to aryTest[days, (station * feature)]
 aryTest = np.reshape(aryTest,
                      ((aryTest.shape[0] * aryTest.shape[1]),
                       aryTest.shape[2])
@@ -198,11 +200,14 @@ fgr01 = plt.figure(figsize=((varSizeX * 0.5) / varDpi,
                             (varSizeY * 0.5) / varDpi),
                    dpi=varDpi)
 
-# Create axis:
-axs01 = fgr01.add_subplot(111)
+# Loop through features (separate subplots):
+for idxFtr in range(varNumFtr):
 
-# Plot depth profile for current input file:
-plt01 = axs01.plot(vecTest)
+    # Create axis:
+    axs01 = fgr01.add_subplot(1, varNumFtr, idxFtr)
+
+    # Plot depth profile for current input file:
+    plt01 = axs01.plot(aryTestPrd[idxFtr, :])
 
 # Output file name:
 strPltTmp = (strPthPlot + 'data_to_be_predicted.png')
@@ -218,7 +223,7 @@ fgr01.savefig(strPltTmp,
 # Close figure:
 plt.close(fgr01)
 # -----------------------------------------------------------------------------
-            
+
 
 # -----------------------------------------------------------------------------
 # *** Train model
@@ -226,7 +231,7 @@ plt.close(fgr01)
 # Placeholder
 objX = tf.placeholder(dtype=tf.float32,
                       shape=[varNumPast, (varNumSta * varNumFtr)])
-objY = tf.placeholder(dtype=tf.float32, shape=[1])
+objY = tf.placeholder(dtype=tf.float32, shape=[varNumFtr])
 
 
 # Initializers
@@ -303,18 +308,6 @@ net = tf.Session()
 # Run initializer
 net.run(tf.global_variables_initializer())
 
-# Setup interactive plot
-#plt.ion()
-#fig = plt.figure()
-#ax1 = fig.add_subplot(111)
-#line1, = ax1.plot(y_test)
-#line2, = ax1.plot(y_test*0.5)
-#plt.show()
-
-# Number of epochs and batch size
-# epochs = 10
-# batch_size = 256
-
 # Index of last day in training data set from which to make predictions (total
 # number of days in training data set minus lenght of prediction period minus
 # days in the future to predict):
@@ -324,7 +317,7 @@ varLstDay = (aryTrain.shape[1] - varNumPast - varNumPre)
 vecIdx = np.arange(0, varLstDay, dtype=np.int32)
 
 for idxEpch in range(varEpch):
-    
+
     print(('--Epoch: ' + str(idxEpch)))
 
     # Shuffle training data indices:
@@ -337,21 +330,21 @@ for idxEpch in range(varEpch):
         aryTmpX = aryTrain[idxDay:(idxDay + varNumPast), :]
 
         # Data point to predict:
-        varTmpY = np.array(vecTrainPrd[(idxDay + varNumPast + varNumPre)],
+        varTmpY = np.array(aryTrainPrd[:, (idxDay + varNumPast + varNumPre)],
                            ndmin=1)
-        
+
         # Run optimizer with batch
         net.run(opt, feed_dict={objX: aryTmpX, objY: varTmpY})
 
         # Show progress
-        if np.mod(idxDay, 5) == 0:
+        if np.mod(idxDay, 1000) == 0:
 
             # Number of days to predict from in test data set:
-            varNumTstDays = (vecTest.shape[0] - varNumPast - varNumPre)
-            
+            varNumTstDays = (aryTest.shape[0] - varNumPast - varNumPre)
+
             # Array for test predictions:
-            vecPrdTst = np.zeros((varNumTstDays), dtype=np.float32)
-            
+            aryPrdTst = np.zeros((varNumTstDays, varNumFtr), dtype=np.float32)
+
             # Loop through days in test data set:
             for idxDayTst in range(varNumTstDays):
 
@@ -372,26 +365,29 @@ for idxEpch in range(varEpch):
 
                 # print('pred')
                 # print(pred)
-                
+
                 # `pred` has as many elements as there are features - why? Are
                 # all features predicted?
 
-                vecPrdTst[idxDayTst] = pred[0, varFtrPrd]
-                
+                aryPrdTst[idxDayTst] = np.copy(pred)
+
             # Error:
-            vecErr = np.subtract(vecTest[(varNumPast + varNumPre):],
-                                 vecPrdTst)
+            aryErr = np.subtract(aryTest[(varNumPast + varNumPre):],
+                                 aryPrdTst)
 
             # Create figure:
             fgr01 = plt.figure(figsize=((varSizeX * 0.5) / varDpi,
                                         (varSizeY * 0.5) / varDpi),
                                dpi=varDpi)
-        
-            # Create axis:
-            axs01 = fgr01.add_subplot(111)
 
-            # Plot depth profile for current input file:
-            plt01 = axs01.plot(vecErr)
+            # Loop through features (separate subplots):
+            for idxFtr in range(varNumFtr):
+
+                # Create axis:
+                axs01 = fgr01.add_subplot(1, varNumFtr, idxFtr)
+
+                # Plot depth profile for current input file:
+                plt01 = axs01.plot(aryErr[idxFtr, :])
 
             # Output file name:
             strPltTmp = (strPthPlot
@@ -408,7 +404,7 @@ for idxEpch in range(varEpch):
                           orientation='landscape',
                           transparent=False,
                           frameon=None)
-        
+
             # Close figure:
             plt.close(fgr01)
 
@@ -417,6 +413,3 @@ for idxEpch in range(varEpch):
 # print(mse_final)
 
 # -----------------------------------------------------------------------------
-
-
-

@@ -1,5 +1,5 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""Tensorflow weather prediction."""
 
 # Copyright (C) 2018  Ingo Marquardt
 #
@@ -17,7 +17,7 @@
 # this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-# import csv
+import csv
 # import datetime
 import numpy as np
 import h5py
@@ -26,8 +26,8 @@ from utils import read_csv
 from utils import delta_days
 
 
-def load_data(lstFtr, strPthIn, strFleIn, varNumHdr, strPthHd, varStrtDate,
-              varEndDate):
+def load_data(lstFtr, strPthIn, strFleIn, varNumHdr, varHdrLneSta, strPthHd,
+              strPthLst, varStrtDate, varEndDate):
     """Load weather data from text files and save to hdf5 file."""
     print('---Loading weather data from text files.')
 
@@ -63,7 +63,7 @@ def load_data(lstFtr, strPthIn, strFleIn, varNumHdr, strPthHd, varStrtDate,
         lstFlsTmp = os.listdir(path=strPthTmp)
 
         # Only use file names corresponding to input file format:
-        lstFlsTmp = [f.split('_')[1] for f in lstFlsTmp if \
+        lstFlsTmp = [f.split('_')[1] for f in lstFlsTmp if
                      strFleIn.format(strFtr, '').split('.')[0] in f]
 
         # List to set (lstFls now contains one set per weather feature, each
@@ -92,6 +92,9 @@ def load_data(lstFtr, strPthIn, strFleIn, varNumHdr, strPthHd, varStrtDate,
                                                   varNumDays)),
                                    dtype=np.int32)
 
+    # List with station names:
+    lstSta = [None] * varNumSta
+
     # Loop through features:
     for idxFtr in range(varNumFtr):
 
@@ -109,6 +112,19 @@ def load_data(lstFtr, strPthIn, strFleIn, varNumHdr, strPthHd, varStrtDate,
                          + lstFls[idxSta])
 
             print(('      ' + strPthTmp))
+
+            # Only load station name once:
+            if idxFtr == 0:
+
+                # Load station name from file:
+                lstCsvNme = read_csv(strPthTmp)[varHdrLneSta]
+                lstSta[idxSta] = ('Station ID (STAID): '
+                                  + str(idxSta)
+                                  + ' '
+                                  + lstCsvNme[:])
+
+                print('lstSta[idxSta]')
+                print(lstSta[idxSta])
 
             # Load data from file:
             lstCsv = read_csv(strPthTmp)[varNumHdr:]
@@ -143,3 +159,8 @@ def load_data(lstFtr, strPthIn, strFleIn, varNumHdr, strPthHd, varStrtDate,
 
     # Cloase hdf5 file:
     fleHd.close()
+
+    # Save station list:
+    with open(strPthLst, 'wb') as objFle:
+        objWrt = csv.writer(objFle, quoting=csv.QUOTE_ALL)
+        objWrt.writerow(lstSta)
