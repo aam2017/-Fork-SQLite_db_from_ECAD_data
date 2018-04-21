@@ -50,8 +50,8 @@ varNumHdr = 21
 varHdrLneSta = 12
 
 # Path of hdf5 file:
-strPthHd = '/media/sf_D_DRIVE/eu_weather/hdf5/data.hdf5'
-# strPthHd = '/home/john/Documents/data.hdf5'
+# strPthHd = '/media/sf_D_DRIVE/eu_weather/hdf5/data.hdf5'
+strPthHd = '/home/john/Documents/data.hdf5'
 
 # Path of station list:
 strPthLst = '/media/sf_D_DRIVE/eu_weather/hdf5/station_list.txt'
@@ -63,7 +63,7 @@ varStrtDate = 19800101
 varEndDate = 20180331
 
 # Predict weather based on past x days:
-varNumPast = 1
+varNumPast = 5
 
 # Predict weather for xth day into the future (i.e. 1 for following day):
 varNumPre = 1
@@ -79,16 +79,17 @@ varBase = 9
 varDaysTest = 365
 
 # Number of epochs:
-varEpch = 10
+varEpch = 100
 
 # Output folder for plots:
-strPthPlot = '/Users/john/Dropbox/Sonstiges/Weather_Plots/'
+# strPthPlot = '/Users/john/Dropbox/Sonstiges/Weather_Plots/'
+strPthPlot = '/home/john/Dropbox/Sonstiges/Weather_Plots/'
 
 # Figure dpi:
 varDpi = 96
 
 # Figure size:
-varSizeX = 2400
+varSizeX = 2200
 varSizeY = 400
 # -----------------------------------------------------------------------------
 
@@ -149,20 +150,35 @@ aryTest = np.array(aryData[:, :, -varDaysTest:],
 
 # Normalise the training data to range 0 to 1 (separately for each feature):
 for idxFtr in range(varNumFtr):
+    # vecTmp = aryTrain[:, idxFtr, :]
+    # varTmpMin = np.min(vecTmp)
+    # vecTmp = np.subtract(vecTmp, varTmpMin)
+    # varTmpMax = np.max(vecTmp)
+    # vecTmp = np.divide(vecTmp, varTmpMax)
+    # aryTrain[:, idxFtr, :] = vecTmp
     vecTmp = aryTrain[:, idxFtr, :]
-    varTmpMin = np.min(vecTmp)
-    vecTmp = np.subtract(vecTmp, varTmpMin)
-    varTmpMax = np.max(vecTmp)
-    vecTmp = np.divide(vecTmp, varTmpMax)
+    varTmpMne = np.mean(vecTmp)
+    vecTmp = np.subtract(vecTmp, varTmpMne)
+    varTmpSd = np.std(vecTmp)
+    vecTmp = np.divide(vecTmp, varTmpSd)
+    # Remove extreme cases:
+    vecLgc = np.greater(np.absolute(vecTmp), 2.5)
+    vecTmp[vecLgc] = 0.0
     aryTrain[:, idxFtr, :] = vecTmp
 
 # Normalise the test data to range 0 to 1 (separately for each feature):
 for idxFtr in range(varNumFtr):
+    # vecTmp = aryTest[:, idxFtr, :]
+    # varTmpMin = np.min(vecTmp)
+    # vecTmp = np.subtract(vecTmp, varTmpMin)
+    # varTmpMax = np.max(vecTmp)
+    # vecTmp = np.divide(vecTmp, varTmpMax)
+    # aryTest[:, idxFtr, :] = vecTmp
     vecTmp = aryTest[:, idxFtr, :]
-    varTmpMin = np.min(vecTmp)
-    vecTmp = np.subtract(vecTmp, varTmpMin)
-    varTmpMax = np.max(vecTmp)
-    vecTmp = np.divide(vecTmp, varTmpMax)
+    varTmpMne = np.mean(vecTmp)
+    vecTmp = np.subtract(vecTmp, varTmpMne)
+    varTmpSd = np.std(vecTmp)
+    vecTmp = np.divide(vecTmp, varTmpSd)
     aryTest[:, idxFtr, :] = vecTmp
 
 # Training data set - predict this data during training (i.e. all features from
@@ -230,11 +246,11 @@ plt.close(fgr01)
 # *** Train model
 
 # Placeholder
-objX = tf.placeholder(dtype=tf.float32,
-                      shape=[varNumPast, (varNumSta * varNumFtr)])
 # objX = tf.placeholder(dtype=tf.float32,
-#                       shape=[None, (varNumSta * varNumFtr)])
-objY = tf.placeholder(dtype=tf.float32, shape=[varNumFtr])
+#                       shape=[varNumPast, (varNumSta * varNumFtr)])
+objX = tf.placeholder(dtype=tf.float32,
+                      shape=[1, (varNumSta * varNumFtr * varNumPast)])
+objY = tf.placeholder(dtype=tf.float32, shape=[varNumFtr, 1])
 
 
 # Initializers
@@ -245,7 +261,7 @@ weight_initializer = tf.variance_scaling_initializer(mode="fan_avg",
 bias_initializer = tf.zeros_initializer()
 
 # Model architecture parameters
-n_input = (varNumSta * varNumFtr)
+n_input = (varNumSta * varNumFtr * varNumPast)
 n_neurons_1 = 8192
 n_neurons_2 = 4096
 n_neurons_3 = 2048
@@ -253,7 +269,11 @@ n_neurons_4 = 1024
 n_neurons_5 = 512
 n_neurons_6 = 256
 n_neurons_7 = 128
-n_target = 1
+# n_target = 1
+n_target = varNumFtr
+
+print('n_input')
+print(n_input)
 
 # Layer 1: Variables for hidden weights and biases
 W_hidden_1 = tf.Variable(weight_initializer([n_input, n_neurons_1]))
@@ -285,8 +305,8 @@ bias_hidden_7 = tf.Variable(bias_initializer([n_neurons_7]))
 
 # Output layer: Variables for output weights and biases
 W_out = tf.Variable(weight_initializer([n_neurons_7, n_target]))
-# bias_out = tf.Variable(bias_initializer([n_target]))
-bias_out = tf.Variable(bias_initializer([1, varNumFtr]))
+bias_out = tf.Variable(bias_initializer([n_target]))
+# bias_out = tf.Variable(bias_initializer([1, varNumFtr]))
 
 # Hidden layer
 hidden_1 = tf.nn.relu(tf.add(tf.matmul(objX, W_hidden_1), bias_hidden_1))
@@ -310,7 +330,7 @@ print(objY.shape)
 mse = tf.reduce_mean(tf.squared_difference(out, objY))
 
 # Optimizer
-opt = tf.train.AdamOptimizer().minimize(mse)
+opt = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(mse)
 
 # Make Session
 net = tf.Session()
@@ -339,15 +359,17 @@ for idxEpch in range(varEpch):
         # Data used for prediction:
         aryTmpX = aryTrain[idxDay:(idxDay + varNumPast), :]
 
+        aryTmpX = aryTmpX.reshape(1, (aryTmpX.shape[0] * aryTmpX.shape[1]))
+
         # Data point to predict:
         varTmpY = np.array(aryTrainPrd[:, (idxDay + varNumPast + varNumPre)],
-                           ndmin=1)
+                           ndmin=2).T
 
         # Run optimizer with batch
         net.run(opt, feed_dict={objX: aryTmpX, objY: varTmpY})
 
         # Show progress
-        if np.mod(idxDay, 1000) == 0:
+        if np.mod(idxDay, 10000) == 0:
 
             # Number of days to predict from in test data set:
             varNumTstDays = (aryTest.shape[0] - varNumPast - varNumPre)
@@ -364,6 +386,11 @@ for idxEpch in range(varEpch):
                 # print(idxDayTst)
 
                 aryTestTmp = aryTest[idxDayTst:(idxDayTst + varNumPast), :]
+
+                aryTestTmp = aryTestTmp.reshape(1,
+                                                (aryTestTmp.shape[0]
+                                                 * aryTestTmp.shape[1])
+                                                )
 
                 # Prediction
                 pred = net.run(out, feed_dict={objX: aryTestTmp})
