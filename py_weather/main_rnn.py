@@ -50,8 +50,8 @@ varNumHdr = 21
 varHdrLneSta = 12
 
 # Path of hdf5 file:
-# strPthHd = '/media/sf_D_DRIVE/eu_weather/hdf5/data.hdf5'
-strPthHd = '/home/john/Documents/data.hdf5'
+strPthHd = '/media/sf_D_DRIVE/eu_weather/hdf5/data.hdf5'
+# strPthHd = '/home/john/Documents/data.hdf5'
 
 # Path of station list:
 strPthLst = '/media/sf_D_DRIVE/eu_weather/hdf5/station_list.txt'
@@ -83,7 +83,7 @@ varEpch = 100
 
 # Output folder for plots:
 # strPthPlot = '/Users/john/Dropbox/Sonstiges/Weather_Plots/'
-strPthPlot = '/home/john/Dropbox/Sonstiges/Weather_Plots/'
+strPthPlot = '/Users/john/Dropbox/Sonstiges/Weather_Plots/'
 
 # Figure dpi:
 varDpi = 96
@@ -245,25 +245,8 @@ plt.close(fgr01)
 # -----------------------------------------------------------------------------
 # *** Train model
 
-# Placeholder
-# objX = tf.placeholder(dtype=tf.float32,
-#                       shape=[varNumPast, (varNumSta * varNumFtr)])
-objX = tf.placeholder(dtype=tf.float32,
-                      shape=[1, (varNumSta * varNumFtr * varNumPast)])
-objY = tf.placeholder(dtype=tf.float32, shape=[varNumFtr, 1])
-
-# State (for rnn):
-init_state = tf.placeholder(tf.float32, [batch_size, state_size])
-
-# Initializers
-varSigma = 1
-weight_initializer = tf.variance_scaling_initializer(mode="fan_avg",
-                                                     distribution="uniform",
-                                                     scale=varSigma)
-bias_initializer = tf.zeros_initializer()
-
 # Model architecture parameters
-n_input = (varNumSta * varNumFtr * varNumPast)
+n_input = (varNumSta * varNumFtr)
 n_neurons_1 = 8192
 n_neurons_2 = 4096
 n_neurons_3 = 2048
@@ -274,12 +257,27 @@ n_neurons_7 = 128
 # n_target = 1
 n_target = varNumFtr
 
+# Placeholder
+objX = tf.placeholder(dtype=tf.float32, shape=[1, n_input])
+# objX = tf.placeholder(dtype=tf.float32,
+#                      shape=[1, (varNumSta * varNumFtr * varNumPast)])
+objY = tf.placeholder(dtype=tf.float32, shape=[varNumFtr, 1])
+
+
+# Initializers
+varSigma = 1
+weight_initializer = tf.variance_scaling_initializer(mode="fan_avg",
+                                                     distribution="uniform",
+                                                     scale=varSigma)
+bias_initializer = tf.zeros_initializer()
+
 print('n_input')
 print(n_input)
 
 # Layer 1: Variables for hidden weights and biases
-W_hidden_1 = tf.Variable(weight_initializer([n_input, n_neurons_1]))
+W_hidden_1 = tf.Variable(weight_initializer([(n_input + (varNumPast * n_neurons_1)), n_neurons_1]))
 bias_hidden_1 = tf.Variable(bias_initializer([n_neurons_1]))
+state_1 = tf.Variable(tf.zeros([1, (varNumPast * n_neurons_1)], dtype=tf.float32))
 
 # Layer 2: Variables for hidden weights and biases
 W_hidden_2 = tf.Variable(weight_initializer([n_neurons_1, n_neurons_2]))
@@ -311,7 +309,22 @@ bias_out = tf.Variable(bias_initializer([n_target]))
 # bias_out = tf.Variable(bias_initializer([1, varNumFtr]))
 
 # Hidden layer
-hidden_1 = tf.nn.relu(tf.add(tf.matmul(objX, W_hidden_1), bias_hidden_1))
+hidden_1 = tf.nn.relu(tf.add(tf.matmul(tf.concat([objX, state_1], 1),
+                                       W_hidden_1),
+                             bias_hidden_1))
+state_1 = tf.concat(
+                    [tf.reshape(hidden_1, [1, n_neurons_1]),
+                     state_1[:, 0:(-n_neurons_1)]],  # tf.reshape(state_1[0:-n_neurons_1], [state_1.shape])],
+                    1)
+
+print(type(tf.concat([objX, state_1], 1)))
+
+print('hidden_1.shape')
+print(hidden_1.shape)
+
+print('state_1.shape')
+print(state_1.shape)
+
 hidden_2 = tf.nn.relu(tf.add(tf.matmul(hidden_1, W_hidden_2), bias_hidden_2))
 hidden_3 = tf.nn.relu(tf.add(tf.matmul(hidden_2, W_hidden_3), bias_hidden_3))
 hidden_4 = tf.nn.relu(tf.add(tf.matmul(hidden_3, W_hidden_4), bias_hidden_4))
@@ -343,7 +356,7 @@ net.run(tf.global_variables_initializer())
 # Index of last day in training data set from which to make predictions (total
 # number of days in training data set minus lenght of prediction period minus
 # days in the future to predict):
-varLstDay = (aryTrain.shape[1] - varNumPast - varNumPre)
+varLstDay = (aryTrain.shape[1] - varNumPre)
 
 # Indices of days from which to make prediction:
 vecIdx = np.arange(0, varLstDay, dtype=np.int32)
@@ -353,28 +366,32 @@ for idxEpch in range(varEpch):
     print(('--Epoch: ' + str(idxEpch)))
 
     # Shuffle training data indices:
-    vecIdxPerm = np.random.permutation(vecIdx)
+    # vecIdxPerm = np.random.permutation(vecIdx)
+    vecIdxPerm = vecIdx
 
     # Loop through days:
     for idxDay in range(vecIdxPerm.shape[0]):
 
         # Data used for prediction:
-        aryTmpX = aryTrain[idxDay:(idxDay + varNumPast), :]
+        # aryTmpX = aryTrain[idxDay:(idxDay + varNumPast), :]
+        aryTmpX = aryTrain[idxDay, :]
 
-        aryTmpX = aryTmpX.reshape(1, (aryTmpX.shape[0] * aryTmpX.shape[1]))
+        aryTmpX = aryTmpX.reshape((1, aryTmpX.shape[0]))
 
         # Data point to predict:
-        varTmpY = np.array(aryTrainPrd[:, (idxDay + varNumPast + varNumPre)],
+        # varTmpY = np.array(aryTrainPrd[:, (idxDay + varNumPast + varNumPre)],
+        #                    ndmin=2).T
+        varTmpY = np.array(aryTrainPrd[:, (idxDay + varNumPre)],
                            ndmin=2).T
 
         # Run optimizer with batch
         net.run(opt, feed_dict={objX: aryTmpX, objY: varTmpY})
 
         # Show progress
-        if np.mod(idxDay, 10000) == 0:
+        if np.mod(idxDay, 100) == 0:
 
             # Number of days to predict from in test data set:
-            varNumTstDays = (aryTest.shape[0] - varNumPast - varNumPre)
+            varNumTstDays = (aryTest.shape[0] - varNumPre)
 
             # Array for test predictions:
             aryPrdTst = np.zeros((varNumTstDays, varNumFtr),
@@ -387,12 +404,9 @@ for idxEpch in range(varEpch):
 
                 # print(idxDayTst)
 
-                aryTestTmp = aryTest[idxDayTst:(idxDayTst + varNumPast), :]
+                aryTestTmp = aryTest[idxDayTst, :]
 
-                aryTestTmp = aryTestTmp.reshape(1,
-                                                (aryTestTmp.shape[0]
-                                                 * aryTestTmp.shape[1])
-                                                )
+                aryTestTmp = aryTestTmp.reshape((1, aryTestTmp.shape[0]))
 
                 # Prediction
                 pred = net.run(out, feed_dict={objX: aryTestTmp})
@@ -419,7 +433,7 @@ for idxEpch in range(varEpch):
             # print(aryTestPrd.shape)
             # print('aryPrdTst.shape')
             # print(aryPrdTst.shape)
-            aryErr = np.subtract(aryTestPrd[:, (varNumPast + varNumPre):],
+            aryErr = np.subtract(aryTestPrd[:, varNumPre:],
                                  aryPrdTst.T)
 
             # Create figure:

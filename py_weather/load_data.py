@@ -50,7 +50,7 @@ def load_data(lstFtr, strPthIn, strFleIn, varNumHdr, varHdrLneSta, strPthHd,
     # Search for data text files - loop through features:
     for idxFtr in range(varNumFtr):
 
-        # Appreviation for current feature:
+        # Abbreviation for current feature:
         strFtr = lstFtr[idxFtr]
 
         # Get number of files (i.e. number of weather stations for which

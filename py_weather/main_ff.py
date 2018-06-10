@@ -50,8 +50,8 @@ varNumHdr = 21
 varHdrLneSta = 12
 
 # Path of hdf5 file:
-# strPthHd = '/media/sf_D_DRIVE/eu_weather/hdf5/data.hdf5'
-strPthHd = '/home/john/Documents/data.hdf5'
+strPthHd = '/media/sf_D_DRIVE/eu_weather/hdf5/data.hdf5'
+# strPthHd = '/home/john/Documents/data.hdf5'
 
 # Path of station list:
 strPthLst = '/media/sf_D_DRIVE/eu_weather/hdf5/station_list.txt'
