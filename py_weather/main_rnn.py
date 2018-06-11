@@ -466,7 +466,7 @@ for idxEpch in range(varEpch):
         net.run(opt, feed_dict={objX: aryTmpX, objY: varTmpY})
 
         # Show progress
-        if np.mod(idxDay, 100) == 0:
+        if np.mod(idxDay, 1000) == 0:
 
             # Number of days to predict from in test data set:
             varNumTstDays = (aryTest.shape[0] - varNumPre)
