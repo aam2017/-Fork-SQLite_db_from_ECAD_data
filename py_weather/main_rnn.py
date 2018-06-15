@@ -50,8 +50,8 @@ varNumHdr = 21
 varHdrLneSta = 12
 
 # Path of hdf5 file:
-strPthHd = '/media/sf_D_DRIVE/eu_weather/hdf5/data.hdf5'
-# strPthHd = '/home/john/Documents/data.hdf5'
+# strPthHd = '/media/sf_D_DRIVE/eu_weather/hdf5/data.hdf5'
+strPthHd = '/home/john/Documents/data.hdf5'
 
 # Path of station list:
 strPthLst = '/media/sf_D_DRIVE/eu_weather/hdf5/station_list.txt'
@@ -62,8 +62,8 @@ varStrtDate = 19800101
 # Load data until this date (YYYMMMDD):
 varEndDate = 20180331
 
-# Remember layer states for tha past x days:
-varNumPast = 2
+# Remember layer states for past x days:
+varNumPast = 3
 
 # Predict weather for xth day into the future (i.e. 1 for following day):
 varNumPre = 1
@@ -82,15 +82,15 @@ varDaysTest = 365
 varEpch = 100
 
 # Output folder for plots:
+strPthPlot = '/home/john/Dropbox/Sonstiges/Weather_Plots/'
 # strPthPlot = '/Users/john/Dropbox/Sonstiges/Weather_Plots/'
-strPthPlot = '/Users/john/Dropbox/Sonstiges/Weather_Plots/'
 
 # Figure dpi:
 varDpi = 96
 
 # Figure size:
-varSizeX = 2200
-varSizeY = 400
+varSizeX = 1900
+varSizeY = 500
 # -----------------------------------------------------------------------------
 
 
@@ -226,6 +226,15 @@ for idxFtr in range(varNumFtr):
     # Plot data:
     plt01 = axs01.plot(aryTestPrd[idxFtr, :])
     axs01.set_ylim([-2.0, 2.0])
+    axs01.set_title(lstFtr[idxFtr])
+
+# Make plot & axis labels fit into figure (this may not always work,
+# depending on the layout of the plot, matplotlib sometimes throws a
+# ValueError ("left cannot be >= right").
+try:
+    plt.tight_layout(pad=0.5)
+except ValueError:
+    pass
 
 # Output file name:
 strPltTmp = (strPthPlot + 'data_to_be_predicted.png')
@@ -248,14 +257,15 @@ plt.close(fgr01)
 
 # Model architecture parameters
 n_input = (varNumSta * varNumFtr)
-n_neurons_1 = 8192
-n_neurons_2 = 4096
-n_neurons_3 = 2048
-n_neurons_4 = 1024
-n_neurons_5 = 512
-n_neurons_6 = 256
-n_neurons_7 = 128
-# n_target = 1
+n_neurons_1 = 16384
+n_neurons_2 = 8192
+n_neurons_3 = 4096
+n_neurons_4 = 2048
+n_neurons_5 = 1024
+n_neurons_6 = 512
+n_neurons_7 = 256
+n_neurons_8 = 128
+n_neurons_9 = 56
 n_target = varNumFtr
 
 # Placeholder
@@ -331,8 +341,24 @@ bias_hidden_7 = tf.Variable(bias_initializer([n_neurons_7]), dtype=tf.float32)
 state_7 = tf.Variable(tf.zeros([1, (varNumPast * n_neurons_7)],
                                dtype=tf.float32))
 
+# Dimension of hidden layer (input data + state, number of neurons):
+lstDimHdn08 = [(n_neurons_7 + (varNumPast * n_neurons_8)), n_neurons_8]
+# Layer 8: Variables for hidden weights and biases
+W_hidden_8 = tf.Variable(weight_initializer(lstDimHdn08), dtype=tf.float32)
+bias_hidden_8 = tf.Variable(bias_initializer([n_neurons_8]), dtype=tf.float32)
+state_8 = tf.Variable(tf.zeros([1, (varNumPast * n_neurons_8)],
+                               dtype=tf.float32))
+
+# Dimension of hidden layer (input data + state, number of neurons):
+lstDimHdn09 = [(n_neurons_8 + (varNumPast * n_neurons_9)), n_neurons_9]
+# Layer 9: Variables for hidden weights and biases
+W_hidden_9 = tf.Variable(weight_initializer(lstDimHdn09), dtype=tf.float32)
+bias_hidden_9 = tf.Variable(bias_initializer([n_neurons_9]), dtype=tf.float32)
+state_9 = tf.Variable(tf.zeros([1, (varNumPast * n_neurons_9)],
+                               dtype=tf.float32))
+
 # Output layer: Variables for output weights and biases
-W_out = tf.Variable(weight_initializer([n_neurons_7, n_target]),
+W_out = tf.Variable(weight_initializer([n_neurons_9, n_target]),
                     dtype=tf.float32)
 bias_out = tf.Variable(bias_initializer([n_target]), dtype=tf.float32)
 # bias_out = tf.Variable(bias_initializer([1, varNumFtr]))
@@ -346,15 +372,6 @@ state_1 = tf.concat(
                     [tf.reshape(hidden_1, [1, n_neurons_1]),
                      state_1[:, 0:(-n_neurons_1)]],
                     1)
-
-print('tf.concat([objX, state_1], 1).shape')
-print(tf.concat([objX, state_1], 1).shape)
-
-print('hidden_1.shape')
-print(hidden_1.shape)
-
-print('state_1.shape')
-print(state_1.shape)
 
 hidden_2 = tf.nn.relu(tf.add(tf.matmul(tf.concat([hidden_1, state_2], 1),
                                        W_hidden_2),
@@ -410,14 +427,26 @@ state_7 = tf.concat(
                      state_7[:, 0:(-n_neurons_7)]],
                     1)
 
+hidden_8 = tf.nn.relu(tf.add(tf.matmul(tf.concat([hidden_7, state_8], 1),
+                                       W_hidden_8),
+                             bias_hidden_8))
+# Update state:
+state_8 = tf.concat(
+                    [tf.reshape(hidden_8, [1, n_neurons_8]),
+                     state_8[:, 0:(-n_neurons_8)]],
+                    1)
+
+hidden_9 = tf.nn.relu(tf.add(tf.matmul(tf.concat([hidden_8, state_9], 1),
+                                       W_hidden_9),
+                             bias_hidden_9))
+# Update state:
+state_9 = tf.concat(
+                    [tf.reshape(hidden_9, [1, n_neurons_9]),
+                     state_9[:, 0:(-n_neurons_9)]],
+                    1)
+
 # Output layer (must be transposed)
-out = tf.transpose(tf.add(tf.matmul(hidden_7, W_out), bias_out))
-
-print('out.shape')
-print(out.shape)
-
-print('objY.shape')
-print(objY.shape)
+out = tf.transpose(tf.add(tf.matmul(hidden_9, W_out), bias_out))
 
 # Cost function
 mse = tf.reduce_mean(tf.squared_difference(out, objY))
@@ -466,7 +495,7 @@ for idxEpch in range(varEpch):
         net.run(opt, feed_dict={objX: aryTmpX, objY: varTmpY})
 
         # Show progress
-        if np.mod(idxDay, 1000) == 0:
+        if np.mod(idxDay, 5000) == 0:
 
             # Number of days to predict from in test data set:
             varNumTstDays = (aryTest.shape[0] - varNumPre)
@@ -528,6 +557,15 @@ for idxEpch in range(varEpch):
                 # Plot prediction error:
                 plt01 = axs01.plot(aryErr[idxFtr, :])
                 axs01.set_ylim([-2.0, 2.0])
+                axs01.set_title(lstFtr[idxFtr])
+
+            # Make plot & axis labels fit into figure (this may not always
+            # work, depending on the layout of the plot, matplotlib sometimes
+            # throws a ValueError ("left cannot be >= right").
+            try:
+                plt.tight_layout(pad=0.5)
+            except ValueError:
+                pass
 
             # Output file name:
             strPltTmp = (strPthPlot
