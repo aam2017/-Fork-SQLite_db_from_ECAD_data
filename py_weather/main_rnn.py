@@ -63,7 +63,7 @@ varStrtDate = 19800101
 varEndDate = 20180331
 
 # Remember layer states for past x days:
-varNumPast = 3
+varNumPast = 1
 
 # Predict weather for xth day into the future (i.e. 1 for following day):
 varNumPre = 1
@@ -452,7 +452,7 @@ out = tf.transpose(tf.add(tf.matmul(hidden_9, W_out), bias_out))
 mse = tf.reduce_mean(tf.squared_difference(out, objY))
 
 # Optimizer
-opt = tf.train.AdamOptimizer(learning_rate=0.0001).minimize(mse)
+opt = tf.train.AdamOptimizer(learning_rate=0.00001).minimize(mse)
 
 # Make Session
 net = tf.Session()
