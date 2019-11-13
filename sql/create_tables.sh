@@ -46,7 +46,7 @@ do
 done
 
 # Create station ID table:
-sql_cmd="CREATE TABLE weather.source_ids(
+sql_cmd="CREATE TABLE weather.station_ids(
   auto_id INTEGER NOT NULL AUTO_INCREMENT,
   station_id INTEGER,
   station_name VARCHAR(255),
