@@ -2,11 +2,13 @@
 
 def dms_to_dec(dms):
     """Convert latitude/longitude from degrees:minutes:seconds to decimal."""
-    dms = lst_lne[3]
     # Remove colon separators and split:
     dms = dms.replace(':',' ').split()
-    # There may be leading zeros in the string. Strip only leading (not trailling) zeros.
+    # There may be leading zeros in the string. Strip only leading (not
+    # trailling) zeros.
     dms = [x.lstrip('0') for x in dms]
+    # There may be empty fields after zero-stripping, replace them with zero.
+    dms = ['0' if x == '' else x for x in dms]
     # Convert to float:
     dms = [float(x) for x in dms]
     # Convert to decimal:
