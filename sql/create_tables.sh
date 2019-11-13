@@ -51,8 +51,8 @@ sql_cmd="CREATE TABLE weather.station_ids(
   station_id INTEGER,
   station_name VARCHAR(255),
   country_code VARCHAR(2),
-  latitude DECIMAL,
-  longitude DECIMAL,
+  latitude DECIMAL(19,16),
+  longitude DECIMAL(19,16),
   station_elevation INTEGER,
   PRIMARY KEY (auto_id)
   )AUTO_INCREMENT=1;"
@@ -65,8 +65,8 @@ sql_cmd="CREATE TABLE weather.source_ids(
   source_id INTEGER,
   source_name VARCHAR(255),
   country_code VARCHAR(2),
-  latitude DECIMAL,
-  longitude DECIMAL,
+  latitude DECIMAL(19,16),
+  longitude DECIMAL(19,16),
   station_elevation INTEGER,
   element_identifier VARCHAR(255),
   record_start DATE,
