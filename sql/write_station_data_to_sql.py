@@ -7,6 +7,7 @@ Read weather station metadata (name, position, etc.) into SQL database.
 import csv
 import mysql.connector
 import getpass
+import numpy as np
 from utils import dms_to_dec
 
 
@@ -72,8 +73,8 @@ for lst_lne in csv:
         station_id = int(lst_lne[0])
         station_name = lst_lne[1].strip()
         country_code = lst_lne[2].strip()
-        latitude = dms_to_dec(lst_lne[3])
-        longitude = dms_to_dec(lst_lne[4])
+        latitude = np.around(dms_to_dec(lst_lne[3]), decimals=8)
+        longitude = np.around(dms_to_dec(lst_lne[4]), decimals=8)
         station_elevation = int(lst_lne[5])
         # Complete SQL query:
         sql = query.format(station_id,
@@ -86,7 +87,7 @@ for lst_lne in csv:
         cursor.execute(sql)
     count += 1
     # Commit transaction:
-    if 10000 % count == 0:
+    if (count % 10000) == 0:
         print('Committing transaction. Number of lines: ' + str(count))
         conn.commit()
 # Final commit:
