@@ -71,7 +71,8 @@ for lst_lne in csv:
             print(lst_lne)
         # Get parameters from csv string:
         station_id = int(lst_lne[0])
-        station_name = lst_lne[1].strip()
+        # Replace quotations marks from station name.
+        station_name = lst_lne[1].strip().replace('\'', ' ').replace('\"', ' ')
         country_code = lst_lne[2].strip()
         latitude = np.around(dms_to_dec(lst_lne[3]), decimals=8)
         longitude = np.around(dms_to_dec(lst_lne[4]), decimals=8)
@@ -94,6 +95,12 @@ for lst_lne in csv:
 conn.commit()
 
 print('Done.')
+
+# Replace invalid station elevation values (-999 or -9999) by NULL:
+sql_null = ('UPDATE station_ids SET station_elevation = NULL '
+            + 'WHERE station_elevation LIKE "%999%";')
+cursor.execute(sql_null)
+conn.commit()
 
 
 # -----------------------------------------------------------------------------
