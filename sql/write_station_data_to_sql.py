@@ -45,9 +45,9 @@ else:
 # Open csv file
 file = open(csv_path, 'r')
 
-csv = csv.reader(file,
-                 delimiter=',',
-                 skipinitialspace=True)
+text = csv.reader(file,
+                  delimiter=',',
+                  skipinitialspace=True)
 
 # SQL query for adding rows:
 query = ('INSERT INTO weather.station_ids ('
@@ -64,7 +64,7 @@ cursor = conn.cursor()
 # Loop through csv object and fill database
 print('Writing text to database.')
 count = 0
-for lst_lne in csv:
+for lst_lne in text:
     if count > lines_skip:
         # Print initial lines for QA:
         if count < 30:
