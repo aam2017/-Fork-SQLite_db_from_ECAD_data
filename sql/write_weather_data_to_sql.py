@@ -63,9 +63,9 @@ query = ('INSERT INTO weather.{} ('
          + 'date, '
          + 'measurement, '
          + 'quality'
-         + ') VALUES (\'{}\', \'{}\', \'{}\', \'{}\', \'{}\')')
+         + ') VALUES (\'{}\', \'{}\', \'{}\', \'{}\', \'{}\');')
 
-#cursor = conn.cursor()
+cursor = conn.cursor()
 
 for key, value in parameters.items():
 
@@ -144,21 +144,21 @@ for key, value in parameters.items():
                                        quality)
 
                     # Execute SQL query:
-                    #cursor.execute(sql)
+                    cursor.execute(sql)
                     count += 1
 
                     # Commit transaction:
                     if (count % 1000000) == 0:
                         print('Committing transaction: ' + str(count))
-                        #conn.commit()
+                        conn.commit()
 
         else:
             print('Skipping file: ' + file_name)
 
-    print('Committed ' + str(count) + ' measurements for parameter ' + key)
+    # Final commit:
+    conn.commit()
 
-# Final commit:
-#conn.commit()
+    print('Committed ' + str(count) + ' measurements for parameter ' + key)
 
 print('Done.')
 
