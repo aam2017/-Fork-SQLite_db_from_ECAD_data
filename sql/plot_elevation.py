@@ -36,7 +36,8 @@ cursor = conn.cursor()
 # ***  Access data
 
 # Get number of stations with valid elevation:
-sql = 'SELECT COUNT(*) FROM station_ids WHERE station_elevation IS NOT NULL;'
+sql = ('SELECT COUNT(*) FROM station_ids WHERE station_elevation IS NOT NULL '
+       + 'AND country_code = "NO";')
 
 # Execute SQL query:
 cursor.execute(sql)
@@ -48,7 +49,8 @@ columns = ['station_id', 'latitude', 'longitude', 'station_elevation']
 # Select rows with valid station elevation.
 sql = ('SELECT '
        + ', '.join(columns)
-       + ' FROM station_ids WHERE station_elevation IS NOT NULL;')
+       + ' FROM station_ids WHERE (station_elevation IS NOT NULL '
+       + 'AND country_code = "NO");')
 cursor.execute(sql)
 
 # Array for SQL data:
@@ -90,6 +92,7 @@ ax = sns.scatterplot(x='longitude',
                      y='latitude',
                      hue='station_elevation',
                      palette=cmap,
+                     size=0.01,
                      legend=False,
                      data=df)
 
