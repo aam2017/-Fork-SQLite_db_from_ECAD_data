@@ -19,21 +19,18 @@ import os
 # /media/sf_D_DRIVE/Sonstiges/Weather_Data/snow_depth/SD_STAID000001.txt
 csv_path = '/media/sf_D_DRIVE/Sonstiges/Weather_Data/{}/{}_STAID{}.txt'
 
-#parameters = {'cloud_cover': 'CC',
-#              'global_radiation': 'QQ',
-#              'humidity': 'HU',
-#              'max_temperature': 'TX',
-#              'max_wind_gust': 'FX',
-#              'mean_pressure': 'PP',
-#              'mean_temperature': 'TG',
-#              'mean_wind_speed': 'FG',
-#              'min_temperature': 'TN',
-#              'precipitation': 'RR',
-#              'snow_depth': 'SD',
-#              'sunshine_duration': 'SS',
-#              'wind_direction': 'DD'}
-
-parameters = {'sunshine_duration': 'SS',
+parameters = {'cloud_cover': 'CC',
+              'global_radiation': 'QQ',
+              'humidity': 'HU',
+              'max_temperature': 'TX',
+              'max_wind_gust': 'FX',
+              'mean_pressure': 'PP',
+              'mean_temperature': 'TG',
+              'mean_wind_speed': 'FG',
+              'min_temperature': 'TN',
+              'precipitation': 'RR',
+              'snow_depth': 'SD',
+              'sunshine_duration': 'SS',
               'wind_direction': 'DD'}
 
 
