@@ -14,24 +14,28 @@ import os
 # -----------------------------------------------------------------------------
 # *** Parameters
 
-# Path of station list csv file (parameter name, parameter abbreviation, and 
+# Path of station list csv file (parameter name, parameter abbreviation, and
 # station ID left open):
 # /media/sf_D_DRIVE/Sonstiges/Weather_Data/snow_depth/SD_STAID000001.txt
 csv_path = '/media/sf_D_DRIVE/Sonstiges/Weather_Data/{}/{}_STAID{}.txt'
 
-parameters = {'cloud_cover': 'CC',
-              'global_radiation': 'QQ',
-              'humidity': 'HU',
-              'max_temperature': 'TX',
-              'max_wind_gust': 'FX',
-              'mean_pressure': 'PP',
-              'mean_temperature': 'TG',
-              'mean_wind_speed': 'FG',
-              'min_temperature': 'TN',
-              'precipitation': 'RR',
-              'snow_depth': 'SD',
-              'sunshine_duration': 'SS',
+#parameters = {'cloud_cover': 'CC',
+#              'global_radiation': 'QQ',
+#              'humidity': 'HU',
+#              'max_temperature': 'TX',
+#              'max_wind_gust': 'FX',
+#              'mean_pressure': 'PP',
+#              'mean_temperature': 'TG',
+#              'mean_wind_speed': 'FG',
+#              'min_temperature': 'TN',
+#              'precipitation': 'RR',
+#              'snow_depth': 'SD',
+#              'sunshine_duration': 'SS',
+#              'wind_direction': 'DD'}
+
+parameters = {'sunshine_duration': 'SS',
               'wind_direction': 'DD'}
+
 
 # -----------------------------------------------------------------------------
 # *** Connect to database
@@ -70,9 +74,9 @@ cursor = conn.cursor()
 for key, value in parameters.items():
 
     count = 0
-    
+
     print('Writing data for parameter: ' + key)
-    
+
     # Directory containing csv files of current parameter:
     param_path = csv_path.format(key, value, '')
     param_path = os.path.split(param_path)[0]
@@ -119,7 +123,7 @@ for key, value in parameters.items():
                     day = lst_lne[2][6:8]
                     date = (year + '-' + month + '-' + day)
                     measurement = lst_lne[3]
-                    
+
                     # Quality code (0='valid'; 1='suspect'; 9='missing').
                     if lst_lne[4] == '0':
                         quality = 'valid'

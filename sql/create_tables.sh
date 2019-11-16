@@ -22,7 +22,7 @@ parameters=(max_temperature \
             cloud_cover \
             humidity \
             snow_depth \
-            sunshine_duratio \
+            sunshine_duration \
             global_radiation \
             mean_wind_speed \
             max_wind_gust \
