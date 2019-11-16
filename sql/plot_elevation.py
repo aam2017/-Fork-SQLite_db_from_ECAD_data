@@ -36,8 +36,12 @@ cursor = conn.cursor()
 # ***  Access data
 
 # Get number of stations with valid elevation:
-sql = ('SELECT COUNT(*) FROM station_ids WHERE station_elevation IS NOT NULL '
-       + 'AND country_code = "NO";')
+sql = ('SELECT COUNT(*) FROM station_ids WHERE '
+       + '(station_elevation IS NOT NULL) '
+       + 'AND ('
+       + '(longitude BETWEEN -15 AND 35) '
+       + ' AND (latitude BETWEEN 35 AND 75)'
+       + ');')
 
 # Execute SQL query:
 cursor.execute(sql)
@@ -49,8 +53,13 @@ columns = ['station_id', 'latitude', 'longitude', 'station_elevation']
 # Select rows with valid station elevation.
 sql = ('SELECT '
        + ', '.join(columns)
-       + ' FROM station_ids WHERE (station_elevation IS NOT NULL '
-       + 'AND country_code = "NO");')
+       + ' FROM station_ids WHERE '
+       + '(station_elevation IS NOT NULL) '
+       + 'AND ('
+       + '(longitude BETWEEN -15 AND 35) '
+       + ' AND (latitude BETWEEN 35 AND 75)'
+       + ');')
+
 cursor.execute(sql)
 
 # Array for SQL data:
