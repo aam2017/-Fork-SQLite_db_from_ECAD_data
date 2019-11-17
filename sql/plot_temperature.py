@@ -43,20 +43,18 @@ print('Plot temperature by geographical location.')
 print('Counting number of entries to retrieve from database.')
 
 # Get number of stations with valid measurement:
-sql = ('SELECT '
-       + 'COUNT(*) '
-       + 'FROM mean_temperature '
-       + 'LEFT JOIN station_ids '
-       + 'ON mean_temperature.station_id = station_ids.station_id '
-       + 'WHERE '
-       + '((mean_temperature.date = \'2006-05-10\') '
-       + 'AND (mean_temperature.quality = \'valid\')) '
-       + 'AND mean_temperature.station_id IN ('
-       + 'SELECT station_ids.station_id FROM station_ids '
-       + 'WHERE '
-       + '((station_ids.longitude BETWEEN -15 AND 35) '
-       + 'AND (station_ids.latitude BETWEEN 35 AND 75))'
-       + ');')
+sql = ('SELECT COUNT(avg_temp) '
+       + 'FROM (SELECT mean_temperature.station_id, station_ids.longitude, '
+       + 'station_ids.latitude, AVG(mean_temperature.measurement) AS avg_temp, '
+       + 'COUNT(mean_temperature.measurement) AS count_temp '
+       + 'FROM mean_temperature  LEFT JOIN station_ids ON '
+       + 'mean_temperature.station_id = station_ids.station_id '
+       + 'WHERE ((mean_temperature.date BETWEEN \'2006-01-01\' AND '
+       + '\'2006-02-01\') AND (mean_temperature.quality = \'valid\')) '
+       + 'AND mean_temperature.station_id IN ( SELECT station_ids.station_id '
+       + 'FROM station_ids WHERE ((station_ids.longitude BETWEEN -15 AND 35) '
+       + 'AND (station_ids.latitude BETWEEN 35 AND 75)) ) '
+       + 'GROUP BY mean_temperature.station_id) AS cnt_avg_temp;')
 
 # Execute SQL query:
 cursor.execute(sql)
@@ -65,24 +63,24 @@ number_observations = cursor.fetchall()[0][0]
 print(('Retrieving ' + str(number_observations) + ' measurements.'))
 
 # Column names (in SQL table and for dataframe):
-columns = ['station_id', 'longitude', 'latitude', 'measurement']
+columns = ['station_id',
+           'longitude',
+           'latitude',
+           'measurement',
+           'observation_count']
 
 # Select rows from database.
-sql = ('SELECT '
-       + 'mean_temperature.station_id, station_ids.longitude, '
-       + 'station_ids.latitude, mean_temperature.measurement '
-       + 'FROM mean_temperature '
-       + 'LEFT JOIN station_ids '
-       + 'ON mean_temperature.station_id = station_ids.station_id '
-       + 'WHERE '
-       + '((mean_temperature.date = \'2006-05-10\') '
-       + 'AND (mean_temperature.quality = \'valid\')) '
-       + 'AND mean_temperature.station_id IN ('
-       + 'SELECT station_ids.station_id FROM station_ids '
-       + 'WHERE '
-       + '((station_ids.longitude BETWEEN -15 AND 35) '
-       + 'AND (station_ids.latitude BETWEEN 35 AND 75))'
-       + ');')
+sql = ('SELECT mean_temperature.station_id, station_ids.longitude, '
+       + 'station_ids.latitude, AVG(mean_temperature.measurement) AS avg_temp, '
+       + 'COUNT(mean_temperature.measurement) AS count_temp '
+       + 'FROM mean_temperature  LEFT JOIN station_ids ON '
+       + 'mean_temperature.station_id = station_ids.station_id '
+       + 'WHERE ((mean_temperature.date BETWEEN \'2006-01-01\' AND '
+       + '\'2006-02-01\') AND (mean_temperature.quality = \'valid\')) '
+       + 'AND mean_temperature.station_id IN ( SELECT station_ids.station_id '
+       + 'FROM station_ids WHERE ((station_ids.longitude BETWEEN -15 AND 35) '
+       'AND (station_ids.latitude BETWEEN 35 AND 75)) ) '
+       + 'GROUP BY mean_temperature.station_id;')
 
 cursor.execute(sql)
 
@@ -145,7 +143,7 @@ fgr.savefig(fgr_path)
 
 # Close figure:
 plt.close(fgr)
-    
+
 
 # -----------------------------------------------------------------------------
 # *** Close objects
