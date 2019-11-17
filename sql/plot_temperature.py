@@ -5,6 +5,7 @@ Plot temperature by geographical location.
 """
 
 
+import os
 import mysql.connector
 import getpass
 import numpy as np
@@ -13,6 +14,20 @@ import seaborn as sns
 import geopandas as geo
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
+
+
+# -----------------------------------------------------------------------------
+# *** Parameters
+
+# Plot anual mean of daily mean temperature in date range:
+years = [1900]  # list(range(1900, 2018))
+
+# Threshold number of valid observations per year, stations with fewer valid
+# observations per year are excluded from plot:
+num_obs_thr = 328
+
+# Output path for plots:
+path_plots = '/media/sf_D_DRIVE/Sonstiges/Weather_Data/plots'
 
 
 # -----------------------------------------------------------------------------
@@ -36,113 +51,155 @@ cursor = conn.cursor()
 
 
 # -----------------------------------------------------------------------------
-# ***  Access data
+# ***  Loop through years
 
 print('Plot temperature by geographical location.')
 
-print('Counting number of entries to retrieve from database.')
-
-# Get number of stations with valid measurement:
-sql = ('SELECT COUNT(avg_temp) '
-       + 'FROM (SELECT mean_temperature.station_id, station_ids.longitude, '
-       + 'station_ids.latitude, AVG(mean_temperature.measurement) AS avg_temp, '
-       + 'COUNT(mean_temperature.measurement) AS count_temp '
-       + 'FROM mean_temperature  LEFT JOIN station_ids ON '
-       + 'mean_temperature.station_id = station_ids.station_id '
-       + 'WHERE ((mean_temperature.date BETWEEN \'2006-01-01\' AND '
-       + '\'2006-02-01\') AND (mean_temperature.quality = \'valid\')) '
-       + 'AND mean_temperature.station_id IN ( SELECT station_ids.station_id '
-       + 'FROM station_ids WHERE ((station_ids.longitude BETWEEN -15 AND 35) '
-       + 'AND (station_ids.latitude BETWEEN 35 AND 75)) ) '
-       + 'GROUP BY mean_temperature.station_id) AS cnt_avg_temp;')
-
-# Execute SQL query:
-cursor.execute(sql)
-number_observations = cursor.fetchall()[0][0]
-
-print(('Retrieving ' + str(number_observations) + ' measurements.'))
-
-# Column names (in SQL table and for dataframe):
-columns = ['station_id',
-           'longitude',
-           'latitude',
-           'measurement',
-           'observation_count']
-
-# Select rows from database.
-sql = ('SELECT mean_temperature.station_id, station_ids.longitude, '
-       + 'station_ids.latitude, AVG(mean_temperature.measurement) AS avg_temp, '
-       + 'COUNT(mean_temperature.measurement) AS count_temp '
-       + 'FROM mean_temperature  LEFT JOIN station_ids ON '
-       + 'mean_temperature.station_id = station_ids.station_id '
-       + 'WHERE ((mean_temperature.date BETWEEN \'2006-01-01\' AND '
-       + '\'2006-02-01\') AND (mean_temperature.quality = \'valid\')) '
-       + 'AND mean_temperature.station_id IN ( SELECT station_ids.station_id '
-       + 'FROM station_ids WHERE ((station_ids.longitude BETWEEN -15 AND 35) '
-       'AND (station_ids.latitude BETWEEN 35 AND 75)) ) '
-       + 'GROUP BY mean_temperature.station_id;')
-
-cursor.execute(sql)
-
-# Array for SQL data:
-data = np.zeros((number_observations, len(columns)), dtype=np.float32)
-
-# Fill dataframe with SQL rows:
-idx_row = 0
-for row in cursor.fetchall():
-    for idx_column in range(len(columns)):
-        data[idx_row, idx_column] = float(row[idx_column])
-    idx_row += 1
-
-# Create dataframe:
-df_weather = pd.DataFrame(data, columns=columns)
-
+for year in years:
+    
+    print(('Year: ' + str(year)))
 
 # -----------------------------------------------------------------------------
-# *** Create plot
+# ***  Access data
 
-sns.set()
 
-fgr = plt.figure(figsize=(10, 8), dpi=120)
 
-# Minimum and maximum temperatures, for scaling of colormap:
-temp_min = df_weather['measurement'].min()
-temp_max = df_weather['measurement'].max()
+    # print('Counting number of entries to retrieve from database.')
+    
+    # Get number of stations with valid measurement:
+    sql = ('SELECT COUNT(avg_temp) '
+           + 'FROM ('
+           + 'SELECT mean_temperature.station_id, station_ids.longitude, '
+           + 'station_ids.latitude, '
+           + 'AVG(mean_temperature.measurement) AS avg_temp, '
+           + 'COUNT(mean_temperature.measurement) AS count_temp '
+           + 'FROM '
+           + 'mean_temperature  LEFT JOIN station_ids ON '
+           + 'mean_temperature.station_id = station_ids.station_id '
+           + 'WHERE '
+           + '((mean_temperature.date BETWEEN \'{}-01-01\' AND '
+           + '\'{}-12-31\') '
+           + 'AND (mean_temperature.quality = \'valid\')) '
+           + 'AND mean_temperature.station_id IN ( '
+           + 'SELECT station_ids.station_id '
+           + 'FROM station_ids '
+           + 'WHERE '
+           + '((station_ids.longitude BETWEEN -15 AND 35) '
+           + 'AND (station_ids.latitude BETWEEN 35 AND 75)) ) '
+           + 'GROUP BY mean_temperature.station_id) AS cnt_avg_temp;'
+           ).format(year, year)
+    
+    # Execute SQL query:
+    cursor.execute(sql)
+    number_observations = cursor.fetchall()[0][0]
+    
+    print(('Retrieving ' + str(number_observations) + ' measurements.'))
+    
+    # Column names (in SQL table and for dataframe):
+    columns = ['station_id',
+               'longitude',
+               'latitude',
+               'measurement',
+               'observation_count']
+    
+    # Select rows from database.
+    sql = ('SELECT mean_temperature.station_id, station_ids.longitude, '
+           + 'station_ids.latitude, AVG(mean_temperature.measurement) AS avg_temp, '
+           + 'COUNT(mean_temperature.measurement) AS count_temp '
+           + 'FROM mean_temperature  LEFT JOIN station_ids ON '
+           + 'mean_temperature.station_id = station_ids.station_id '
+           + 'WHERE ((mean_temperature.date BETWEEN \'{}-01-01\' AND '
+           + '\'{}-12-31\') AND (mean_temperature.quality = \'valid\')) '
+           + 'AND mean_temperature.station_id IN ( SELECT station_ids.station_id '
+           + 'FROM station_ids WHERE ((station_ids.longitude BETWEEN -15 AND 35) '
+           + 'AND (station_ids.latitude BETWEEN 35 AND 75)) ) '
+           + 'GROUP BY mean_temperature.station_id;').format(year, year)
+    
+    cursor.execute(sql)
+    
+    # Array for SQL data:
+    data = np.zeros((number_observations, len(columns)), dtype=np.float32)
+    
+    # Fill dataframe with SQL rows:
+    idx_row = 0
+    for row in cursor.fetchall():
+        for idx_column in range(len(columns)):
+            data[idx_row, idx_column] = float(row[idx_column])
+        idx_row += 1
+    
+    # Create dataframe:
+    df_weather = pd.DataFrame(data, columns=columns)
 
-# Prepare colour map:
-clr_norm = colors.Normalize(vmin=temp_min, vmax=temp_max)
-cmap = plt.cm.plasma  # plt.cm.winter
+    # Number of stations before excluding stations with low number of valid
+    # observations:
+    sta_num_ttl = len(df_weather)
 
-# Get map with country borders as background:
-df_world = geo.read_file(geo.datasets.get_path('naturalearth_lowres'))
+    # Exclude stations with low number of valid observations:
+    df_weather = df_weather[np.greater(df_weather['observation_count'],
+                                       num_obs_thr)]
 
-# Plot country borders:
-ax = df_world.plot(figsize=(10, 10),
-                   alpha=0.5,
-                   facecolor='#dfdfdfff',
-                   edgecolor='#707070ff',
-                   ax=plt.gca())
+    # Number of stations after thresholding:
+    sta_num_thr = len(df_weather)
 
-# Only plot Europe:
-ax.set_xlim(-15.0,35.0)
-ax.set_ylim(35.0,75.0)
+    print(('Excluded '
+           + str(sta_num_ttl - sta_num_thr)
+           + ' stations out of '
+           + str(sta_num_ttl)
+           + ' because there were less than '
+           + str (num_obs_thr)
+           + ' valid records for the year '
+           + str(year)))
 
-# Plot weather data:
-sns.scatterplot(x='longitude',
-                y='latitude',
-                hue='measurement',
-                palette=cmap,
-                size=0.01,
-                legend=False,
-                data=df_weather,
-                ax=ax)
+    
+    # -----------------------------------------------------------------------------
+    # *** Create plot
+    
+    sns.set()
+    
+    fgr = plt.figure(figsize=(10, 8), dpi=120)
+    
+    # Minimum and maximum temperatures, for scaling of colormap:
+    temp_min = -100.0  # df_weather['measurement'].min()
+    temp_max = 250.0  # df_weather['measurement'].max()
+    
+    # Prepare colour map:
+    clr_norm = colors.Normalize(vmin=temp_min, vmax=temp_max)
+    cmap = plt.cm.plasma  # plt.cm.winter
+    
+    # Get map with country borders as background:
+    df_world = geo.read_file(geo.datasets.get_path('naturalearth_lowres'))
+    
+    # Plot country borders:
+    ax = df_world.plot(figsize=(10, 10),
+                       alpha=0.5,
+                       facecolor='#dfdfdfff',
+                       edgecolor='#707070ff',
+                       ax=plt.gca())
+    
+    # Only plot Europe:
+    ax.set_xlim(-15.0, 35.0)
+    ax.set_ylim(35.0, 75.0)
+    
+    # Plot weather data:
+    sns.scatterplot(x='longitude',
+                    y='latitude',
+                    hue='measurement',
+                    palette=cmap,
+                    size=0.01,
+                    legend=False,
+                    data=df_weather,
+                    ax=ax)
+    
+    # Save figure:
+    fgr_path = os.path.join(path_plots,
+                            ('mean_anual_temperature_' + str(year) + '.png')
+                            )
+    fgr.savefig(fgr_path)
+    
+    # Close figure:
+    plt.close(fgr)
 
-# Save figure:
-fgr_path = '/home/john/Desktop/weather.png'
-fgr.savefig(fgr_path)
-
-# Close figure:
-plt.close(fgr)
+print('Done.')
 
 
 # -----------------------------------------------------------------------------
