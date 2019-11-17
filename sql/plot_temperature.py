@@ -55,17 +55,17 @@ cursor = conn.cursor()
 
 print('Plot temperature by geographical location.')
 
+sns.set()
+
 for year in years:
-    
+
     print(('Year: ' + str(year)))
 
 # -----------------------------------------------------------------------------
 # ***  Access data
 
-
-
     # print('Counting number of entries to retrieve from database.')
-    
+
     # Get number of stations with valid measurement:
     sql = ('SELECT COUNT(avg_temp) '
            + 'FROM ('
@@ -88,20 +88,20 @@ for year in years:
            + 'AND (station_ids.latitude BETWEEN 35 AND 75)) ) '
            + 'GROUP BY mean_temperature.station_id) AS cnt_avg_temp;'
            ).format(year, year)
-    
+
     # Execute SQL query:
     cursor.execute(sql)
     number_observations = cursor.fetchall()[0][0]
-    
+
     print(('Retrieving ' + str(number_observations) + ' measurements.'))
-    
+
     # Column names (in SQL table and for dataframe):
     columns = ['station_id',
                'longitude',
                'latitude',
                'measurement',
                'observation_count']
-    
+
     # Select rows from database.
     sql = ('SELECT mean_temperature.station_id, station_ids.longitude, '
            + 'station_ids.latitude, AVG(mean_temperature.measurement) AS avg_temp, '
@@ -114,19 +114,19 @@ for year in years:
            + 'FROM station_ids WHERE ((station_ids.longitude BETWEEN -15 AND 35) '
            + 'AND (station_ids.latitude BETWEEN 35 AND 75)) ) '
            + 'GROUP BY mean_temperature.station_id;').format(year, year)
-    
+
     cursor.execute(sql)
-    
+
     # Array for SQL data:
     data = np.zeros((number_observations, len(columns)), dtype=np.float32)
-    
+
     # Fill dataframe with SQL rows:
     idx_row = 0
     for row in cursor.fetchall():
         for idx_column in range(len(columns)):
             data[idx_row, idx_column] = float(row[idx_column])
         idx_row += 1
-    
+
     # Create dataframe:
     df_weather = pd.DataFrame(data, columns=columns)
 
@@ -150,36 +150,34 @@ for year in years:
            + ' valid records for the year '
            + str(year)))
 
-    
+
     # -----------------------------------------------------------------------------
     # *** Create plot
-    
-    sns.set()
-    
+
     fgr = plt.figure(figsize=(10, 8), dpi=120)
-    
+
     # Minimum and maximum temperatures, for scaling of colormap:
     temp_min = -100.0  # df_weather['measurement'].min()
     temp_max = 250.0  # df_weather['measurement'].max()
-    
+
     # Prepare colour map:
     clr_norm = colors.Normalize(vmin=temp_min, vmax=temp_max)
     cmap = plt.cm.plasma  # plt.cm.winter
-    
+
     # Get map with country borders as background:
     df_world = geo.read_file(geo.datasets.get_path('naturalearth_lowres'))
-    
+
     # Plot country borders:
     ax = df_world.plot(figsize=(10, 10),
                        alpha=0.5,
                        facecolor='#dfdfdfff',
                        edgecolor='#707070ff',
                        ax=plt.gca())
-    
+
     # Only plot Europe:
     ax.set_xlim(-15.0, 35.0)
     ax.set_ylim(35.0, 75.0)
-    
+
     # Plot weather data:
     sns.scatterplot(x='longitude',
                     y='latitude',
@@ -189,13 +187,26 @@ for year in years:
                     legend=False,
                     data=df_weather,
                     ax=ax)
-    
+
+    # Plot title:
+    title = ('Mean annual temperature ' + str(year))
+    ax.set_title(title, fontsize=12, fontweight='bold')
+
+    # Disable axis:
+    plt.axis('off')
+
+    # Tighter plot layout:
+    try:
+        plt.tight_layout(pad=0.5)
+    except ValueError:
+        pass
+
     # Save figure:
     fgr_path = os.path.join(path_plots,
                             ('mean_anual_temperature_' + str(year) + '.png')
                             )
     fgr.savefig(fgr_path)
-    
+
     # Close figure:
     plt.close(fgr)
 
