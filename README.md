@@ -1,6 +1,6 @@
 # Plot European weather data.
 
-<img src="plots/mean_temperature.gif" width=314 align="right" />
+<img src="plots/mean_temperature.gif" width=500 align="right" />
 
 Publicly available historical weather data from the [European Climate Assessment & Dataset project](https://www.ecad.eu/) is committed to an SQL database. Plots can be created from the SQL database. The piping of data is done by means of Python scripts.
 
