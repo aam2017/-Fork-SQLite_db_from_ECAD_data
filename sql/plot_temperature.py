@@ -51,43 +51,59 @@ cursor = conn.cursor()
 
 
 # -----------------------------------------------------------------------------
-# ***  Loop through years
+# ***  Access data
 
 print('Plot temperature by geographical location.')
 
 sns.set()
 
+# Using an INNER JOIN statement results in prohibitively slow performance.
+# Instead, we create two temporary tables for the weather stations'
+# geographical position, and the mean temperature in the specified time
+# interval. The two temporary tables can then be joined on station ID.
+
+# The temporal table for geographical location only needs to be created once.
+sql = ('CREATE TEMPORARY TABLE station_ids_tmp '
+       + 'SELECT '
+       + '  station_ids.station_id, '
+       + '  station_ids.longitude, '
+       + '  station_ids.latitude '
+       + 'FROM station_ids '
+       + 'WHERE '
+       + '  ((station_ids.longitude BETWEEN -15 AND 35) '
+       + '   AND '
+       + '  (station_ids.latitude BETWEEN 35 AND 75)); ')
+
+# Execute SQL query:
+cursor.execute(sql)
+
 for year in years:
 
     print(('Year: ' + str(year)))
 
-# -----------------------------------------------------------------------------
-# ***  Access data
-
-    # print('Counting number of entries to retrieve from database.')
-
-    # Get number of stations with valid measurement:
-    sql = ('SELECT COUNT(avg_temp) '
-           + 'FROM ('
-           + 'SELECT mean_temperature.station_id, station_ids.longitude, '
-           + 'station_ids.latitude, '
-           + 'AVG(mean_temperature.measurement) AS avg_temp, '
-           + 'COUNT(mean_temperature.measurement) AS count_temp '
-           + 'FROM '
-           + 'mean_temperature  LEFT JOIN station_ids ON '
-           + 'mean_temperature.station_id = station_ids.station_id '
+    # Create temporary table for stations with valid measurement:
+    sql = ('CREATE TEMPORARY TABLE mean_temperature_tmp '
+           + 'SELECT '
+           + '  mean_temperature.station_id, '
+           + '  AVG(mean_temperature.measurement) AS avg_temp, '
+           + '  COUNT(mean_temperature.measurement) AS count_temp '
+           + 'FROM mean_temperature '
            + 'WHERE '
-           + '((mean_temperature.date BETWEEN \'{}-01-01\' AND '
-           + '\'{}-12-31\') '
-           + 'AND (mean_temperature.quality = \'valid\')) '
-           + 'AND mean_temperature.station_id IN ( '
-           + 'SELECT station_ids.station_id '
-           + 'FROM station_ids '
-           + 'WHERE '
-           + '((station_ids.longitude BETWEEN -15 AND 35) '
-           + 'AND (station_ids.latitude BETWEEN 35 AND 75)) ) '
-           + 'GROUP BY mean_temperature.station_id) AS cnt_avg_temp;'
+           + '  ((mean_temperature.date BETWEEN \'{}-01-01\' AND \'{}-12-31\') '
+           + '   AND '
+           + '   (mean_temperature.quality = \'valid\')) '
+           + 'GROUP BY mean_temperature.station_id;'
            ).format(year, year)
+
+    # Execute SQL query:
+    cursor.execute(sql)
+
+    # Count number of valid observations for current time interval:
+    sql = ('SELECT COUNT(*) '
+           + 'FROM station_ids_tmp '
+           + 'INNER JOIN mean_temperature_tmp  '
+           + 'ON station_ids_tmp.station_id = mean_temperature_tmp.station_id; '
+           )
 
     # Execute SQL query:
     cursor.execute(sql)
@@ -102,18 +118,17 @@ for year in years:
                'measurement',
                'observation_count']
 
-    # Select rows from database.
-    sql = ('SELECT mean_temperature.station_id, station_ids.longitude, '
-           + 'station_ids.latitude, AVG(mean_temperature.measurement) AS avg_temp, '
-           + 'COUNT(mean_temperature.measurement) AS count_temp '
-           + 'FROM mean_temperature  LEFT JOIN station_ids ON '
-           + 'mean_temperature.station_id = station_ids.station_id '
-           + 'WHERE ((mean_temperature.date BETWEEN \'{}-01-01\' AND '
-           + '\'{}-12-31\') AND (mean_temperature.quality = \'valid\')) '
-           + 'AND mean_temperature.station_id IN ( SELECT station_ids.station_id '
-           + 'FROM station_ids WHERE ((station_ids.longitude BETWEEN -15 AND 35) '
-           + 'AND (station_ids.latitude BETWEEN 35 AND 75)) ) '
-           + 'GROUP BY mean_temperature.station_id;').format(year, year)
+    # Retrieve weather data:
+    sql = ('SELECT '
+           + '  station_ids_tmp.station_id, '
+           + '  station_ids_tmp.longitude, '
+           + '  station_ids_tmp.latitude, '
+           + '  mean_temperature_tmp.avg_temp, '
+           + '  mean_temperature_tmp.count_temp '
+           + 'FROM station_ids_tmp '
+           + 'INNER JOIN mean_temperature_tmp  '
+           + 'ON station_ids_tmp.station_id = mean_temperature_tmp.station_id; '
+           )
 
     cursor.execute(sql)
 
@@ -150,6 +165,10 @@ for year in years:
            + ' valid records for the year '
            + str(year)))
 
+    # Drop temporary table pertaining to current time interval.
+    sql = 'DROP TEMPORARY TABLE mean_temperature_tmp;'
+    cursor.execute(sql)
+
 
     # -----------------------------------------------------------------------------
     # *** Create plot
@@ -168,7 +187,7 @@ for year in years:
     df_world = geo.read_file(geo.datasets.get_path('naturalearth_lowres'))
 
     # Plot country borders:
-    ax = df_world.plot(figsize=(10, 10),
+    ax = df_world.plot(figsize=(7, 7),
                        alpha=0.5,
                        facecolor='#dfdfdfff',
                        edgecolor='#707070ff',
