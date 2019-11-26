@@ -17,8 +17,8 @@ import matplotlib.colors as colors
 # -----------------------------------------------------------------------------
 # *** Parameters
 
-# Plot anual mean of daily mean temperature in date range:
-years = list(range(1900, 2018))
+# Plot anual max of daily max temperature in date range:
+years = list(range(1860, 2018))
 
 # Threshold number of valid observations per year, stations with fewer valid
 # observations per year are excluded from plot:
@@ -57,7 +57,7 @@ sns.set()
 
 # Using an INNER JOIN statement results in prohibitively slow performance.
 # Instead, we create two temporary tables for the weather stations'
-# geographical position, and the mean temperature in the specified time
+# geographical position, and the max temperature in the specified time
 # interval. The two temporary tables can then be joined on station ID.
 
 # The temporal table for geographical location only needs to be created once.
@@ -80,17 +80,17 @@ for year in years:
     print(('Year: ' + str(year)))
 
     # Create temporary table for stations with valid measurement:
-    sql = ('CREATE TEMPORARY TABLE mean_temperature_tmp '
+    sql = ('CREATE TEMPORARY TABLE max_temperature_tmp '
            + 'SELECT '
-           + '  mean_temperature.station_id, '
-           + '  AVG(mean_temperature.measurement) AS avg_temp, '
-           + '  COUNT(mean_temperature.measurement) AS count_temp '
-           + 'FROM mean_temperature '
+           + '  max_temperature.station_id, '
+           + '  MAX(max_temperature.measurement) AS max_temp, '
+           + '  COUNT(max_temperature.measurement) AS count_temp '
+           + 'FROM max_temperature '
            + 'WHERE '
-           + '  ((mean_temperature.date BETWEEN \'{}-01-01\' AND \'{}-12-31\') '
+           + '  ((max_temperature.date BETWEEN \'{}-01-01\' AND \'{}-12-31\') '
            + '   AND '
-           + '   (mean_temperature.quality = \'valid\')) '
-           + 'GROUP BY mean_temperature.station_id;'
+           + '   (max_temperature.quality = \'valid\')) '
+           + 'GROUP BY max_temperature.station_id;'
            ).format(year, year)
 
     # Execute SQL query:
@@ -99,8 +99,8 @@ for year in years:
     # Count number of valid observations for current time interval:
     sql = ('SELECT COUNT(*) '
            + 'FROM station_ids_tmp '
-           + 'INNER JOIN mean_temperature_tmp  '
-           + 'ON station_ids_tmp.station_id = mean_temperature_tmp.station_id; '
+           + 'INNER JOIN max_temperature_tmp  '
+           + 'ON station_ids_tmp.station_id = max_temperature_tmp.station_id; '
            )
 
     # Execute SQL query:
@@ -121,11 +121,11 @@ for year in years:
            + '  station_ids_tmp.station_id, '
            + '  station_ids_tmp.longitude, '
            + '  station_ids_tmp.latitude, '
-           + '  mean_temperature_tmp.avg_temp, '
-           + '  mean_temperature_tmp.count_temp '
+           + '  max_temperature_tmp.max_temp, '
+           + '  max_temperature_tmp.count_temp '
            + 'FROM station_ids_tmp '
-           + 'INNER JOIN mean_temperature_tmp  '
-           + 'ON station_ids_tmp.station_id = mean_temperature_tmp.station_id; '
+           + 'INNER JOIN max_temperature_tmp  '
+           + 'ON station_ids_tmp.station_id = max_temperature_tmp.station_id; '
            )
 
     cursor.execute(sql)
@@ -159,23 +159,22 @@ for year in years:
            + ' stations out of '
            + str(sta_num_ttl)
            + ' because there were less than '
-           + str (num_obs_thr)
+           + str(num_obs_thr)
            + ' valid records for the year '
            + str(year)))
 
     # Drop temporary table pertaining to current time interval.
-    sql = 'DROP TEMPORARY TABLE mean_temperature_tmp;'
+    sql = 'DROP TEMPORARY TABLE max_temperature_tmp;'
     cursor.execute(sql)
 
-
-    # -----------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
     # *** Create plot
 
     fgr = plt.figure(figsize=(5.6, 4.48), dpi=120)
 
     # Minimum and maximum temperatures, for scaling of colormap:
-    temp_min = -100.0  # df_weather['measurement'].min()
-    temp_max = 250.0  # df_weather['measurement'].max()
+    temp_min = 100.0  # df_weather['measurement'].min()
+    temp_max = 350.0  # df_weather['measurement'].max()
 
     # Prepare colour map:
     clr_norm = colors.Normalize(vmin=temp_min, vmax=temp_max)
@@ -206,7 +205,7 @@ for year in years:
                     ax=ax)
 
     # Plot title:
-    title = ('Mean annual temperature ' + str(year))
+    title = ('Maximum annual temperature ' + str(year))
     ax.set_title(title, fontsize=12, fontweight='bold')
 
     # Disable axis:
@@ -220,7 +219,7 @@ for year in years:
 
     # Save figure:
     fgr_path = os.path.join(path_plots,
-                            ('mean_anual_temperature_' + str(year) + '.png')
+                            ('max_anual_temperature_' + str(year) + '.png')
                             )
     fgr.savefig(fgr_path)
 
