@@ -18,7 +18,7 @@ import matplotlib.colors as colors
 # *** Parameters
 
 # Plot anual max of daily max temperature in date range:
-years = list(range(1860, 2018))
+years = list(range(1860, 2019))
 
 # Threshold number of valid observations per year, stations with fewer valid
 # observations per year are excluded from plot:
