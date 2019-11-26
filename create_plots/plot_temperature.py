@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Plot temperature by geographical location.
-"""
+"""Plot temperature by geographical location."""
 
 
 import os
